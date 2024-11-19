@@ -5,6 +5,7 @@ from sklearn.preprocessing import MinMaxScaler
 import pickle  # For loading the scaler
 from tensorflow.keras.models import load_model
 from tensorflow.keras.losses import MeanSquaredError
+import datetime  # For handling date input
 
 app = Flask(__name__)
 
@@ -15,6 +16,14 @@ model = load_model(
 
 # Load the scaler used during training
 scaler = pickle.load(open("saved_model/scaler.pkl", "rb"))
+
+
+# Function to convert date to numerical format (days since a reference date)
+def process_date(date_str):
+    reference_date = datetime.date(2020, 1, 1)  # Reference start date
+    input_date = datetime.date.fromisoformat(date_str)
+    days_since_reference = (input_date - reference_date).days
+    return days_since_reference
 
 
 # Route for the main page
@@ -30,10 +39,13 @@ def predict():
         # Get the input JSON data
         data = request.get_json()
 
-        # Ensure features are in the correct shape
+        # Process the date
+        date = process_date(data["date"])
+
+        # Collect features
         features = np.array(
             [
-                data["date"],
+                date,
                 data["daily_new_cases_avg"],
                 data["active_cases"],
                 data["cumulative_total_deaths"],
@@ -42,24 +54,25 @@ def predict():
                 data["lagged_cumulative_cases_2"],
                 data["lagged_cumulative_cases_3"],
             ]
-        ).reshape(1, -1)  # Shape (1, 8)
+        ).reshape(1, -1)  # Reshape for scaler (1 row, 8 columns)
 
-        # Scale the features using the scaler
-        scaled_features = scaler.transform(features)
+        # Normalize features
+        normalized_features = scaler.transform(features)
 
-        # Reshape to (1, seq_length, num_features) for the LSTM
-        scaled_features = scaled_features.reshape(1, 1, -1)
+        # Reshape for LSTM (1, sequence_length, num_features)
+        lstm_input = normalized_features.reshape(
+            1, normalized_features.shape[0], normalized_features.shape[1]
+        )
 
         # Predict using the model
-        prediction = model.predict(scaled_features).squeeze()
+        prediction = model.predict(lstm_input).squeeze()
 
-        # Inverse transform the prediction (only the target variable, cumulative cases)
+        # Inverse transform the prediction
         prediction = scaler.inverse_transform(
             [[0] * (features.shape[1] - 1) + [prediction]]
         )[0, -1]
 
         return jsonify({"predicted_cumulative_cases": float(prediction)})
-
     except Exception as e:
         return jsonify({"error": str(e)})
 
