@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COVID-19 Case Prediction</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <h1>COVID-19 Cumulative Case Prediction</h1>
+    <form id="predict-form">
+        <label for="input-data">Enter Feature Values (JSON):</label>
+        <textarea id="input-data" rows="15" cols="60"
+            placeholder='{"date": [...], "daily_new_cases_avg": [...], ...}'></textarea>
+        <br>
+        <button type="button" onclick="submitPrediction()">Predict</button>
+    </form>
+    <div id="output"></div>
+    <script>
+        async function submitPrediction() {
+            const inputData = document.getElementById("input-data").value;
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: inputData
+                });
+                const result = await response.json();
+                document.getElementById("output").innerHTML =
+                    result.error ? `<p>Error: ${result.error}</p>` : `<p>Predicted Cumulative Cases: ${result.predicted_cumulative_cases}</p>`;
+            } catch (error) {
+                document.getElementById("output").innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+
+</html>
