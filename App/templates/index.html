@@ -4,36 +4,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>COVID-19 Case Prediction</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <title>COVID-19 Cumulative Case Prediction</title>
 </head>
 
 <body>
     <h1>COVID-19 Cumulative Case Prediction</h1>
-    <form id="predict-form">
-        <label for="input-data">Enter Feature Values (JSON):</label>
-        <textarea id="input-data" rows="15" cols="60"
-            placeholder='{"date": [...], "daily_new_cases_avg": [...], ...}'></textarea>
-        <br>
-        <button type="button" onclick="submitPrediction()">Predict</button>
+    <form id="predictionForm">
+        <label for="date">Date:</label>
+        <input type="number" id="date" name="date" step="0.01" required><br><br>
+
+        <label for="daily_new_cases_avg">Daily New Cases (Avg):</label>
+        <input type="number" id="daily_new_cases_avg" name="daily_new_cases_avg" step="0.01" required><br><br>
+
+        <label for="active_cases">Active Cases:</label>
+        <input type="number" id="active_cases" name="active_cases" step="0.01" required><br><br>
+
+        <label for="cumulative_total_deaths">Cumulative Total Deaths:</label>
+        <input type="number" id="cumulative_total_deaths" name="cumulative_total_deaths" step="0.01" required><br><br>
+
+        <label for="daily_new_deaths_avg">Daily New Deaths (Avg):</label>
+        <input type="number" id="daily_new_deaths_avg" name="daily_new_deaths_avg" step="0.01" required><br><br>
+
+        <label for="lagged_cumulative_cases_1">Lagged Cumulative Cases (t-1):</label>
+        <input type="number" id="lagged_cumulative_cases_1" name="lagged_cumulative_cases_1" step="0.01"
+            required><br><br>
+
+        <label for="lagged_cumulative_cases_2">Lagged Cumulative Cases (t-2):</label>
+        <input type="number" id="lagged_cumulative_cases_2" name="lagged_cumulative_cases_2" step="0.01"
+            required><br><br>
+
+        <label for="lagged_cumulative_cases_3">Lagged Cumulative Cases (t-3):</label>
+        <input type="number" id="lagged_cumulative_cases_3" name="lagged_cumulative_cases_3" step="0.01"
+            required><br><br>
+
+        <button type="button" id="predictBtn">Predict</button>
     </form>
-    <div id="output"></div>
+
+    <h2>Prediction:</h2>
+    <p id="result"></p>
+
     <script>
-        async function submitPrediction() {
-            const inputData = document.getElementById("input-data").value;
+        document.getElementById("predictBtn").addEventListener("click", async () => {
+            const formData = {
+                date: parseFloat(document.getElementById("date").value),
+                daily_new_cases_avg: parseFloat(document.getElementById("daily_new_cases_avg").value),
+                active_cases: parseFloat(document.getElementById("active_cases").value),
+                cumulative_total_deaths: parseFloat(document.getElementById("cumulative_total_deaths").value),
+                daily_new_deaths_avg: parseFloat(document.getElementById("daily_new_deaths_avg").value),
+                lagged_cumulative_cases_1: parseFloat(document.getElementById("lagged_cumulative_cases_1").value),
+                lagged_cumulative_cases_2: parseFloat(document.getElementById("lagged_cumulative_cases_2").value),
+                lagged_cumulative_cases_3: parseFloat(document.getElementById("lagged_cumulative_cases_3").value)
+            };
+
             try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: inputData
+                const response = await fetch("/predict", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(formData),
                 });
+
                 const result = await response.json();
-                document.getElementById("output").innerHTML =
-                    result.error ? `<p>Error: ${result.error}</p>` : `<p>Predicted Cumulative Cases: ${result.predicted_cumulative_cases}</p>`;
-            } catch (error) {
-                document.getElementById("output").innerHTML = `<p>Error: ${error.message}</p>`;
+                if (result.error) {
+                    document.getElementById("result").innerText = `Error: ${result.error}`;
+                } else {
+                    document.getElementById("result").innerText = `Predicted Cumulative Cases: ${result.predicted_cumulative_cases}`;
+                }
+            } catch (err) {
+                document.getElementById("result").innerText = `Error: ${err.message}`;
             }
-        }
+        });
     </script>
 </body>
 
